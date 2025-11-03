@@ -35,6 +35,12 @@ def serve(path):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, 'index.html')
+# Create database directory if it doesn't exist
+db_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database')
+os.makedirs(db_dir, exist_ok=True)
+db_path = os.path.join(db_dir, 'app.db')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 
 if __name__ == '__main__':
     import os
