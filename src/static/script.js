@@ -19,24 +19,7 @@ class TrumpChatbot {
             }
         });
         
-        // Settings modal
-        document.getElementById('settingsBtn').addEventListener('click', () => this.showSettingsModal());
-        document.getElementById('closeSettings').addEventListener('click', () => this.hideSettingsModal());
-        
-        // Close modal when clicking outside
-        window.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
-                e.target.style.display = 'none';
-            }
-        });
-    }
-    
-    showSettingsModal() {
-        document.getElementById('settingsModal').style.display = 'block';
-    }
-    
-    hideSettingsModal() {
-        document.getElementById('settingsModal').style.display = 'none';
+
     }
     
     displayInitialMessage() {
