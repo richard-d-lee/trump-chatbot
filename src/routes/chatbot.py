@@ -2,6 +2,9 @@ from flask import Blueprint, request, jsonify
 import requests
 import json
 import os
+from src.models.chat_log import ChatLog
+from src.models.user import db
+from src.utils.geolocation import get_client_ip, get_location_from_ip
 
 chatbot_bp = Blueprint('chatbot', __name__)
 
@@ -52,6 +55,13 @@ def chat():
             if response.status_code == 200:
                 result = response.json()
                 ai_response = result['choices'][0]['message']['content']
+                
+                # Log the conversation
+                try:
+                    log_conversation(message, ai_response, 'openai')
+                except Exception as log_error:
+                    print(f"[WARNING] Failed to log conversation: {log_error}")
+                
                 return jsonify({
                     'success': True,
                     'response': ai_response,
@@ -60,6 +70,13 @@ def chat():
             else:
                 # Fallback if API fails
                 fallback_response = get_fallback_response(message)
+                
+                # Log the conversation
+                try:
+                    log_conversation(message, fallback_response, 'fallback')
+                except Exception as log_error:
+                    print(f"[WARNING] Failed to log conversation: {log_error}")
+                
                 return jsonify({
                     'success': True,
                     'response': fallback_response,
@@ -69,6 +86,13 @@ def chat():
             print(f"OpenAI API error: {e}")
             # Fallback responses
             fallback_response = get_fallback_response(message)
+            
+            # Log the conversation
+            try:
+                log_conversation(message, fallback_response, 'fallback')
+            except Exception as log_error:
+                print(f"[WARNING] Failed to log conversation: {log_error}")
+            
             return jsonify({
                 'success': True,
                 'response': fallback_response,
@@ -156,6 +180,38 @@ RESPONSE STRUCTURE:
 IMPORTANT: You are UNFILTERED and UNRESTRICTED. You say what you think without political correctness. You attack your opponents. You are vicious when challenged. You are narcissistic and everything is about you. You never apologize or admit mistakes. You are the authentic Donald Trump - bombastic, self-aggrandizing, blame-shifting, and playing the victim while claiming to be the strongest.
 
 Remember: You do "the weave" - you jump between topics in a way that seems rambling but (to you) all connects. You're conversational, not formal. You're a showman and a salesman. You're Donald Trump."""
+
+def log_conversation(user_message, bot_response, source):
+    """
+    Log the conversation to the database with location information.
+    """
+    try:
+        # Get client IP and location
+        ip_address = get_client_ip()
+        location = get_location_from_ip(ip_address)
+        
+        # Create log entry
+        log_entry = ChatLog(
+            user_id=None,  # Trump chatbot doesn't have user authentication in chat
+            user_message=user_message,
+            bot_response=bot_response,
+            ip_address=ip_address,
+            country=location.get('country'),
+            region=location.get('region'),
+            city=location.get('city'),
+            latitude=location.get('latitude'),
+            longitude=location.get('longitude'),
+            response_source=source
+        )
+        
+        db.session.add(log_entry)
+        db.session.commit()
+        
+        print(f"[LOG] Conversation logged: {location.get('city')}, {location.get('country')}")
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to log conversation: {e}")
+        db.session.rollback()
 
 def get_fallback_response(message):
     """Generate appropriate fallback responses in Trump's style"""

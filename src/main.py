@@ -10,6 +10,9 @@ from src.models.user import db
 from src.routes.user import user_bp
 from src.routes.chatbot import chatbot_bp
 from src.routes.auth import auth_bp
+from src.routes.admin import admin_bp
+from src.models.chat_log import ChatLog
+from src.utils.scheduler import schedule_cleanup
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.config['SECRET_KEY'] = secrets.token_hex(32)
@@ -20,6 +23,7 @@ CORS(app)
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(chatbot_bp, url_prefix='/api/chatbot')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
 # Database configuration
 # Use /tmp directory for Render (writable) or local database directory for development
@@ -40,6 +44,9 @@ try:
     with app.app_context():
         db.create_all()
         print(f"[DEBUG] Database initialized at: {db_path}")
+        
+        # Start automatic log cleanup scheduler
+        schedule_cleanup(app)
 except Exception as e:
     print(f"[WARNING] Database initialization failed: {e}")
     print("[INFO] App will continue without database (guest mode only)")
